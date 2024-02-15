@@ -1,5 +1,3 @@
-mod client;
-
 use std::net::UdpSocket;
 use std::str;
 
@@ -13,16 +11,21 @@ fn main() -> std::io::Result<()> {
 
         let buf = &mut buf[..amt];
         let received = str::from_utf8(buf).expect("Kunne ikke dekode meldingen");
-        let parts: Vec<&str> = received.split_whitespace().collect();
 
+        if received.trim() == "exit" {
+            println!("Avslutter server...");
+            break;
+        }
+
+        let parts: Vec<&str> = received.split_whitespace().collect();
         if parts.len() != 3 {
             println!("Ugyldig forespørsel: {}", received);
             continue;
         }
 
         let num1: f32 = parts[0].parse().expect("Feil ved parsing av første tall");
-        let num2: f32 = parts[1].parse().expect("Feil ved parsing av andre tall");
-        let operation = parts[2];
+        let operation = parts[1];
+        let num2: f32 = parts[2].parse().expect("Feil ved parsing av andre tall");
 
         let result = match operation {
             "+" => num1 + num2,
@@ -31,6 +34,7 @@ fn main() -> std::io::Result<()> {
             "/" => num1 / num2,
             _ => {
                 println!("Ukjent operasjon: {}", operation);
+                socket.send_to(b"Ukjent operasjon", &src)?;
                 continue;
             }
         };
@@ -38,4 +42,6 @@ fn main() -> std::io::Result<()> {
         let response = format!("Resultat: {}", result);
         socket.send_to(response.as_bytes(), &src)?;
     }
+
+    Ok(())
 }
